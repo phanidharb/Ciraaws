@@ -1,0 +1,74 @@
+AWS ASSIGNMENT-1                                      
+Phanidhar Boddu
+02/11/2020
+1.	How to find CPU, Memory, I/o in linux?
+•	To find CPU usage on Linux we use Top and ps -af commands
+•	To find memory utilization we use free -m and vmstat -s commands
+•	To find I/O utilization we use iostat -xtc 5 3 command gives 3 outputs for every 5 seconds
+2.	How to find disk space of root and every folder underneath?
+•	du command displays the amount of disk space used by the specified files and for each subdirectory
+•	To see disk space on root, use this command: sudo du
+3.	Check the current working directory
+A)	We use PWD command to know current working directory
+4.	Create a directory (name: dir1) and a file(file1) with linux command and insert some data in that file1.
+A)	To create directory, we use this command: mkdir dir1
+B)	Go to dir1 directory: cd dir1
+C)	Create text file: vi file1.txt
+D)	Type I to insert text and Enter some data “New file1.txt is just created”
+E)	To exit the vi-editor press, exit and give: wq and enter
+5.	Difference between symlink and hard link
+Hard link: A hard link is a direct reference to a file via its inode. You can also only hardlink files and not directories. By using a hardlink, you can change the original file’s contents or location and the hardlink will still point to the original file because its inode is still pointing to that file. There is no referencing to the original file. To make a hard link of a file, you will require the ln command and refer to the source file before naming what the hard link will be named
+Sym link: Symbolic links are essentially shortcuts that reference to a file instead of its inode value. This method can be applied to directories and can reference across different hard disks/volumes. Since the symbolic link is referring to the original file and not its inode value, then replacing the original file into a different folder will break the symbolic link or create a dangling link.
+
+6.	When you create a script for running on a system, what is the typical first line at the very top of each script?
+•	When running a script in a subshell, you should define which shell should run the script. The shell type in which you wrote the script might not be the default on your system, so commands you entered might result in errors when executed by the wrong shell.
+•	The first line of the script determines the shell to start. The first two characters of the first line should be #!, then follows the path to the shell that should interpret the commands that follow. Blank lines are also considered to be lines, so don't start your script with an empty line.
+•	For the purpose of this course, all scripts will start with the line
+#!/bin/bash
+7.	How to find disk space?
+•	df -a command shows the amount of disk space used and available on Linux file systems.
+8.	Please provide 5 vi or nano shortcuts
+Five VI shortcuts are 
+•	:wq Write to file and quit 
+•	:q! Quit without saving changes
+•	<ctrl>u Back to beginning of insert
+•	^ Beginning of line 
+•	$ End of line
+9.	what is a mount point and how to mount a volume?
+•	A mount point is a directory in the currently accessible filesystem on which an additional filesystem is mounted. A filesystem is a hierarchy of directories that is used to organize files on a computer system
+•	To mount volume, create a new directory /mnt to use as mount point and the command is sudo mkdir /mnt/first
+•	Use mount, To mount the volume’s filesystem mount pointand command is sudo mount -o defaults,nofail,discard,noatime /dev/disk/by-id/second /mnt/first
+10.	What is root '/'? also describe the functionality of every folder within root?
+•	Root is the user name or account that by default has access to all commands and files on a Linux or other Unix-like operating system. It is also referred to as the root account, root user and the superuser
+•	/boot - Stores the boot loader configuration files, is responsible for storing the configuration files for GRUB, and other files responsible for initializing and running the OS properly.
+•	/dev - Stores all the device information files, is responsible for storing files about the devices installed in the machine, the hardware
+•	/etc - Stores all the configuration files, is responsible for storing nearly all the configuration files used by different services and even by the hardware.
+•	/home - Stores user created files, is responsible for storing files and directories created by a normal user
+•	/lib - Responsible for storing all the library files used by the kernel in order to run properly on a 32-bit architecture.
+•	/lib64 - Responsible for storing all the library files used by the kernel in order to run properly on a 64-bit architecture.
+•	/media - Stores all third-party device mount points, storing all mount points for every third-party removable storage device you install, like CD –Rom, USB Drives, etc
+•	/mnt - Stores permanent mount points, typically contains the mount points for file systems mounted after the system is booted
+•	/opt - Stores remote system mount points, this directory typically contains extra and third party software.
+•	/proc - Stores remote system process info, is a virtual file system containing information about system resources
+•	/root - Super user home directory, administrative user's home directory, it stores all files created by the root user
+•	/run - Stores process info of user, process information about all the users after a successful login.
+•	/sbin - Stores system commands, that can be performed by an administrative or root user
+•	/srv - Stores service-related files
+•	/sys - Stores system related files
+•	/tmp - Stores temporary files, is usually cleaned up by the system at boot.
+•	/usr - Stores user related files, like programs, libraries, documentation and other user-related files
+•	/var - Stores all the variable files, such as mails, logs, printer spool data
+
+11.	Please explain git branching strategy
+•	A branching strategy is. It’s a set of rules and conventions that stipulate
+1)	When a developer should branch
+2)	From which branch they should branch off
+3)	When they should merge back
+4)	And to which branch should they merge back
+12.	Please name 5 services in AWS and describe them briefly
+•	Amazon Elastic Cloud Compute (EC2): The Amazon EC2 service comes under the compute domain and it provides services that help to compute workloads. Amazon EC2 web interface is used to reduce the expensive physical servers by creating virtual machines. Also, they help in managing different features of the virtual servers such as security, ports, and storage. Amazon EC2 is highly preferable while creating a virtual server within a few minutes with just a few clicks according to the user’s operating system conveniently. It offers resizable compute capacity in the cloud. This helps a lot to focus more on the project rather than the server maintenance.
+•	Amazon S3 (Simple Storage Service): Amazon S3 is categorized under storage domain that provides data storage over the Internet services. Primarily, S3 stores data over the cloud in the form of objects. Amazon S3 stores the data with high security because of its improved infrastructure. The information is distributed over different physical regions and has a high-quality integration. This prevents the data from getting lost and helps to retrieve stored data irrespective of time and space via the Internet. Amazon S3 is highly available so that users can access their data just by one click with minimum or zero retrieving time.
+•	Amazon Virtual Private Cloud (VPC): Amazon VPC falls under the Networking domain of AWS which is used to isolate the network infrastructure of user’s computer. Every Amazon account holds a unique virtual network that protects the information from being accessed by others. These networks are logically isolated from other virtual networks in AWS clouds. This makes the user information risk-free in the AWS cloud.
+•	Amazon CloudFront: Amazon CloudFront represents the delivery domain that is used to deliver the content with great speed and reduced latency. Amazon CloudFront is used to connect with other AWS services and to help the developers to send the content to the end-users in a seamless manner. AWS CloudFront is managing all the user’s content in an effective manner via the Global Content Delivery Service.
+•	Amazon Relational Database Services (RDS): Amazon RDS comes under the Database domain of Amazon Web Services and is used to handle database related workloads. The RDS helps the users to design and manage the relational database in the cloud which stores the complex data of the infrastructure. Earlier RDs used to support MySQL and now it also supports Oracle, Microsoft SQL, and MariaDB. It reduces the operational costs and leverages the database server from maintenance and support.
+
