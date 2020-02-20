@@ -1,0 +1,131 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "CloudFormation template for creating an ec2 instance with Auto Scaling",
+
+	"Parameters": {
+
+		"VPC": {
+			"Type": "AWS::EC2::VPC::Id",
+			"Default": "vpc-0c404dcb027419c97"
+		},
+
+		"Subnets": {
+			"Type": "List<AWS::EC2::Subnet::Id>",
+			"Default": "subnet-0f5adfaf5a6a745da, subnet-0f579358a534dc64f"
+		},
+
+		"InstanceType": {
+			"Type": "String",
+			"Default": "t2.micro",
+			"AllowedValues": ["t1.micro", "t2.nano", "t2.micro"]
+		},
+
+		"KeyName": {
+			"Type": "AWS::EC2::KeyPair::KeyName",
+			"Default": "ciratraining"
+		},
+		"SecurityGroup": {
+			"Type": "String",
+			"Default": "sg-0ace05ea46a0a8ebe"
+		}
+	},
+
+	"Resources": {
+
+		"ServerAutoGroup": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"VPCZoneIdentifier": {
+					"Ref": "Subnets"
+				},
+				"LaunchConfigurationName": {
+					"Ref": "LaunchConfig"
+				},
+				"MinSize": "1",
+				"MaxSize": "3"
+			}
+		},
+		"S3Bucket" : {
+          "Type" : "AWS::S3::Bucket",
+	      "DeletionPolicy": "Retain",
+          "Properties" : {
+            "BucketName" : "s3-phani"
+           }  
+        },
+		"RootRole": {
+		  "Type": "AWS::IAM::Role",
+		  "Properties": {
+		     "AssumeRolePolicyDocument": {
+			    "Version" : "2012-10-17",
+				"Statement" : [ {
+				  "Effect": "Allow",
+				  "Principal": {
+				     "Service": [ "ec2.amazonaws.com" ]
+					},
+				  "Action": [ "sts:AssumeRole" ]
+				}]
+			},
+			 "Path": "/"
+			}
+		},
+		"RolePolicies": {
+		    "Type": "AWS::IAM::Policy",
+			"Properties": {
+			  "PolicyName": "root",
+			  "PolicyDocument": {
+			      "Version" : "2012-10-17",
+				  "Statement": [{
+				     "Effect": "Allow",
+					 "Action": "*",
+					 "Resource": "*"
+				  }]
+				},
+			  "Roles": [{
+			       "Ref": "RootRole"
+				}]
+			}
+		},
+		"MySNSTopic": {
+		   "Type" : "AWS::SNS::Topic",
+		   "Properties" : {
+		      "Subscription": [{
+			     "Endpoint" : { "Fn::GetAtt" : [ "MyQueue", "Arn"] },
+				 "Protocol" : "sqs"
+				 }],
+			  "TopicName" : "SampleTopic"
+            }
+        },
+        "MyQueue" : {
+            "Type": "AWS::SQS::Queue"
+         },			
+
+		"LaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Metadata": {
+			   "AWS::CloudFormation::Init":{
+			       "config":{
+				      "packages": {
+					    "yum": {
+						   "httpd": [],
+						   "wget": []
+						  }
+						}
+					}
+				}
+			},
+			"Properties": {
+				"KeyName": {
+					"Ref": "KeyName"
+				},
+				"ImageId": "ami-062f7200baf2fa504",
+				"SecurityGroups": [{
+					"Ref": "SecurityGroup"
+				}],
+				"InstanceType": {
+					"Ref": "InstanceType"
+				}
+			}
+		}
+	}
+}
