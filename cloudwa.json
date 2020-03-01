@@ -1,0 +1,214 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "CloudFormation template for creating an ec2 instance with Auto Scaling",
+
+	"Parameters": {
+
+		"VPC": {
+			"Type": "AWS::EC2::VPC::Id",
+			"Default": "vpc-0c404dcb027419c97"
+		},
+
+		"Subnets": {
+			"Type": "List<AWS::EC2::Subnet::Id>",
+			"Default": "subnet-0f5adfaf5a6a745da, subnet-0f579358a534dc64f"
+		},
+
+		"InstanceType": {
+			"Type": "String",
+			"Default": "t2.micro",
+			"AllowedValues": ["t1.micro", "t2.nano", "t2.micro"]
+		},
+
+		"KeyName": {
+			"Type": "AWS::EC2::KeyPair::KeyName",
+			"Default": "ciratraining"
+		},
+		"SecurityGroup": {
+			"Type": "String",
+			"Default": "sg-0ace05ea46a0a8ebe"
+		}
+	},
+
+	"Resources": {
+
+		"ServerAutoGroup": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"VPCZoneIdentifier": {
+					"Ref": "Subnets"
+				},
+				"LaunchConfigurationName": {
+					"Ref": "LaunchConfig"
+				},
+				"MinSize": "1",
+				"MaxSize": "3"
+			}
+		},
+		"S3Bucket" : {
+          "Type" : "AWS::S3::Bucket",
+	      "DeletionPolicy": "Retain",
+          "Properties" : {
+            "BucketName" : "s3-phani"
+           }  
+        },
+		"RootRole": {
+		  "Type": "AWS::IAM::Role",
+		  "Properties": {
+		     "AssumeRolePolicyDocument": {
+			    "Version" : "2012-10-17",
+				"Statement" : [ {
+				  "Effect": "Allow",
+				  "Principal": {
+				     "Service": [ "ec2.amazonaws.com" ]
+					},
+				  "Action": [ 
+				    "sts:AssumeRole"
+ 					]
+				}]
+			},
+			 "Path": "/",
+			 "Policies": [
+			    {
+				   "PolicyName": "LogRolePolicy",
+				   "PolicyDocument": {
+				       "Version": "2012-10-17",
+					   "Statement": [
+					      {
+						     "Effect": "Allow",
+							 "Action": [
+							     "cloudwatch:PutMetricData",
+                                 "ec2:DescribeVolumes",
+                                 "ec2:DescribeTags",
+                                 "logs:PutLogEvents",
+                                 "logs:DescribeLogStreams",
+                                 "logs:DescribeLogGroups",
+                                 "logs:CreateLogStream",
+                                 "logs:CreateLogGroup"
+						     ],
+						     "Resource": "*"
+							 
+					     },
+					    {
+						    "Effect": "Allow",
+                            "Action": [
+                              "ssm:GetParameter"
+                            ],
+                            "Resource": "arn:aws:ssm:*:*:parameter/AmazonCloudWatch-*"
+                        }
+					
+					]
+					}
+					}]
+							    
+			}
+		},
+		"myInstanceProfile": {
+		   "Type": "AWS::IAM::InstanceProfile",
+		   "Properties": {
+		      "Path": "/",
+			  "Roles": [{"Ref": "RootRole" }]
+			  }
+			 },
+		
+		"CloudWatch": {
+		    "Type": "AWS::IAM::Policy",
+			"Properties": {
+			  "PolicyName": "root",
+			  "PolicyDocument": {
+			      "Version" : "2012-10-17",
+				  "Statement": [{
+				     "Effect": "Allow",
+					 "Action": "*",
+					 "Resource": "*"
+				  }]
+				},
+			  "Roles": [{
+			       "Ref": "RootRole"
+				}]
+			}
+		},
+		"MySNSTopic": {
+		   "Type" : "AWS::SNS::Topic",
+		   "Properties" : {
+		      "Subscription": [{
+			     "Endpoint" : { "Fn::GetAtt" : [ "MyQueue", "Arn"] },
+				 "Protocol" : "sqs"
+				 }],
+			  "TopicName" : "Phani"
+            }
+        },
+        "MyQueue" : {
+            "Type": "AWS::SQS::Queue"
+         },			
+
+		"LaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Metadata": {
+			   "AWS::CloudFormation::Init":{
+			       "config":{
+				      "packages": {
+					    "yum": {
+						   "httpd": [],
+						   "wget": []
+						  }
+						}
+					}
+				}
+			},
+			"Properties": {
+				"KeyName": {
+					"Ref": "KeyName"
+				},
+				"ImageId": "ami-062f7200baf2fa504",
+				"SecurityGroups": [{
+					"Ref": "SecurityGroup"
+				}],
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"IamInstanceProfile": { 
+				    "Ref": "myInstanceProfile"
+				},
+				"AssociatePublicIpAddress": "true",
+				"UserData": {
+                  "Fn::Base64": {
+                     "Fn::Join": [
+                       "",
+                       [
+                         "#!bin/bash\n",
+                         "echo 'entered user data'\n",
+                         "yum install httpd -y \n",
+                         "systemctl start httpd \n",
+                         "cd /var/www/html \n",
+                         "wget  https://raw.githubusercontent.com/phanidharb/Ciraaws/development/index.html  \n",
+                         "chmod 755 index.html \n",
+                         "cd /home \n",
+                         "echo 'enter jenkins installation'\n",
+                         "yum update -y \n",
+                         "wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo \n",
+                         "rpm --import  https://jenkins-ci.org/redhat/jenkins-ci.org.key \n",
+                         "yum install jenkins -y \n",
+						 "yum install git -y \n",
+                         "yum install java-1.8.0 -y \n",
+						 "yum install java-1.8.0-openjdk-devel -y \n",
+						 "yum install -y awslogs \n",
+						 "service awslogsd start \n",
+						 "chkconfig awslogsd on \n",
+                         "service jenkins start \n",
+						 "chmod 777 /etc/awslogs/awscli.conf \n",
+						 "chmod 777 /etc/awslogs/awslog.conf \n",
+                         "sleep 30 \n",
+                         "pwd \n",
+                         "ls \n",
+                         "sudo su \n",
+                         "cat /var/lib/jenkins/secrets/initialAdminPassword >> /var/www/html/index.html"
+                        ]
+                      ]
+                   }
+               }
+			}
+		}
+	}
+}
