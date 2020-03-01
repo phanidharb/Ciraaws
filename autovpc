@@ -1,0 +1,197 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "CloudFormation template for creating an ec2 instance with Auto Scaling",
+
+	"Parameters": {
+
+		"InstanceType": {
+			"Type": "String",
+			"Default": "t2.micro",
+			"AllowedValues": ["t1.micro", "t2.nano", "t2.micro"]
+		}
+
+
+	},
+
+	"Resources": {
+
+		"VPC": {
+			"Type": "AWS::EC2::VPC",
+			"Properties" : {
+			  "CidrBlock" : "172.10.10.0/24",
+			  "InstanceTenancy" : "default",
+			  "Tags" : [ {"Key" : "foo", "Value" : "bar"}]
+			  }
+		},
+        "mySubnet1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties" : {
+			  "VpcId" : { "Ref" : "VPC" },
+			  "CidrBlock" : "172.10.10.0/25",
+			  "AvailabilityZone" : "us-east-1a",
+			  "Tags" : [ {"Key" : "foo", "Value" : "bar"}]
+			  }
+		},
+		"mySubnet2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties" : {
+			  "VpcId" : { "Ref" : "VPC" },
+			  "CidrBlock" : "172.10.10.128/25",
+			  "AvailabilityZone" : "us-east-1a",
+			  "Tags" : [ {"Key" : "foo", "Value" : "bar"}]
+			  }
+		},
+		"mySubnetGroup": {
+		     "Type": "AWS::DAX::SubnetGroup",
+			 "Properties": {
+                "SubnetIds" : {
+				    "subnet1" : { "Ref" : "mySubnet1"},
+					"subnet2" : { "Ref" : "mySubnet2"}
+					}
+				}
+			},
+        "SecurityGroup": {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties": {	
+               "GroupDescription" : "Aloow Https and http traffic",
+               "VpcId" : { "Ref" : "VPC" },
+               "SecurityGroupIngress" : [{
+                    "IpProtocol" : "tcp",
+                    "FromPort" : 22,
+                    "ToPort" : 22,
+                    "CidrIp" : "0.0.0.0/0"
+                   }],
+			   "SecurityGroupIngress": [{
+                	"IpProtocol" : "tcp",
+                    "FromPort" : 443,
+                    "ToPort" : 443,
+                    "CidrIp" : "10.10.10.0/24"
+                   }]
+                }
+             },				
+		"ServerAutoGroup": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"VPCZoneIdentifier": {
+					"Ref": "mySubnetGroup"
+				},
+				"LaunchConfigurationName": {
+					"Ref": "LaunchConfig"
+				},
+				"MinSize": "1",
+				"MaxSize": "3"
+			}
+		},
+		"S3Bucket" : {
+          "Type" : "AWS::S3::Bucket",
+	      "DeletionPolicy": "Retain",
+          "Properties" : {
+            "BucketName" : "s3-phani"
+           }  
+        },
+		"RootRole": {
+		  "Type": "AWS::IAM::Role",
+		  "Properties": {
+		     "AssumeRolePolicyDocument": {
+			    "Version" : "2012-10-17",
+				"Statement" : [ {
+				  "Effect": "Allow",
+				  "Principal": {
+				     "Service": [ "ec2.amazonaws.com" ]
+					},
+				  "Action": [ "sts:AssumeRole" ]
+				}]
+			},
+			 "Path": "/"
+			}
+		},
+		"RolePolicies": {
+		    "Type": "AWS::IAM::Policy",
+			"Properties": {
+			  "PolicyName": "root",
+			  "PolicyDocument": {
+			      "Version" : "2012-10-17",
+				  "Statement": [{
+				     "Effect": "Allow",
+					 "Action": "*",
+					 "Resource": "*"
+				  }]
+				},
+			  "Roles": [{
+			       "Ref": "RootRole"
+				}]
+			}
+		},
+		"MySNSTopic": {
+		   "Type" : "AWS::SNS::Topic",
+		   "Properties" : {
+		      "Subscription": [{
+			     "Endpoint" : { "Fn::GetAtt" : [ "MyQueue", "Arn"] },
+				 "Protocol" : "sqs"
+				 }],
+			  "TopicName" : "Phani"
+            }
+        },
+        "MyQueue" : {
+            "Type": "AWS::SQS::Queue"
+         },			
+
+		"LaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Metadata": {
+			   "AWS::CloudFormation::Init":{
+			       "config":{
+				      "packages": {
+					    "yum": {
+						   "httpd": [],
+						   "wget": []
+						  }
+						}
+					}
+				}
+			},
+			"Properties": {
+
+				"ImageId": "ami-062f7200baf2fa504",
+				"SecurityGroups": [{
+					"Ref": "SecurityGroup"
+				}],
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"AssociatePublicIpAddress": "true",
+                "UserData": {
+                  "Fn::Base64": {
+                     "Fn::Join": [
+                       "",
+                       [
+                         "#!bin/bash\n",
+                         "echo 'entered user data'\n",
+                         "yum install httpd -y \n",
+                         "systemctl start httpd \n",
+                         "cd /var/www/html \n",
+                         "wget  https://raw.githubusercontent.com/phanidharb/Ciraaws/development/index.html  \n",
+                         "chmod 755 index.html \n",
+                         "cd /home \n",
+                         "echo 'enter jenkins installation'\n",
+                         "yum update -y \n",
+                         "wget -O /etc/yum.repos.d/jenkins.repo\nhttp://pkg.jenkins-ci.org/redhat/jenkins.repo \n",
+                         "rpm --import  https://jenkins-ci.org/redhat/jenkins-ci.org.key \n",
+                         "yum install jenkins -y \n",
+                         "yum install java-1.8.0 -y \n",
+                         "service jenkins start \n",
+                         "sleep 30 \n",
+                         "pwd \n",
+                         "ls \n",
+                         "sudo su \n",
+                         "cat /var/lib/jenkins/secrets/initialAdminPassword >> /var/www/html/index.html"
+                        ]
+                      ]
+                   }
+               }
+		   
+			}
+		}
+	}
+}
