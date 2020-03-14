@@ -214,14 +214,15 @@
 		"myDNSRecord" : {
          "Type" : "AWS::Route53::RecordSet",
          "Properties" : {
-            "Name" : "ciratrainingphani.com",
+            "Name" : "trainingcira.com",
+			"HostedZoneId" : "Z3CPSGE0FT6QBI",
             "ResourceRecords" : [
-               "192.0.2.99"
+               "172.10.10.54"
             ],
             "TTL" : "300",
             "Type" : "A"
          }
-      }
+      },
 		
 		"CloudWatch": {
 		    "Type": "AWS::IAM::Policy",
